@@ -1,39 +1,69 @@
-// import models
-const Product = require('./Product');
-const Category = require('./Category');
-const Tag = require('./Tag');
-const ProductTag = require('./ProductTag');
+const router = require('express').Router();
+const { Tag, Product, ProductTag } = require('../../models');
 
-// Products belongsTo Category
-
-Product.belongsTo(Category, {
-  foreignKey: 'category_id',
+router.get('/', async (req, res) => {
+  try {
+    const tagData = await Tag.findAll({
+      include: [{ model: Product, through: ProductTag, as: 'products' }]
+    });
+    res.status(200).json(tagData);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Categories have many Products
-
-Category.hasMany(Product, {
-  foreignKey: 'category_id',
+router.get('/:id', async (req, res) => {
+  try {
+    const tagData = await Tag.findByPk(req.params.id, {
+      include: [{ model: Product, through: ProductTag, as: 'products' }]
+    });
+    if (!tagData) {
+      res.status(404).json({ message: 'Tag not found!' });
+    } else {
+      res.status(200).json(tagData);
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Products belongToMany Tags (through ProductTag)
-
-Product.belongsToMany(Tag, {
-  through: ProductTag,
-  foreignKey: 'product_id',
+router.post('/', async (req, res) => {
+  try {
+    const tagData = await Tag.create(req.body);
+    res.status(201).json(tagData);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Tags belongToMany Products (through ProductTag)
-
-Tag.belongsToMany(Product, {
-  through: ProductTag,
-  foreignKey: 'tag_id',
+router.put('/:id', async (req, res) => {
+  try {
+    const [rowsUpdated] = await Tag.update(req.body, {
+      where: { id: req.params.id }
+    });
+    if (rowsUpdated === 0) {
+      res.status(404).json({ message: 'Tag not found!' });
+    } else {
+      res.status(200).json({ message: 'Tag updated successfully!' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
+router.delete('/:id', async (req, res) => {
+  try {
+    const rowsDeleted = await Tag.destroy({
+      where: { id: req.params.id }
+    });
+    if (rowsDeleted === 0) {
+      res.status(404).json({ message: 'Tag not found!' });
+    } else {
+      res.status(200).json({ message: 'Tag deleted successfully!' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-module.exports = {
-  Product,
-  Category,
-  Tag,
-  ProductTag,
-};
+module.exports = router;
